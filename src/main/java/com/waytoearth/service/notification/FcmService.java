@@ -22,6 +22,10 @@ public class FcmService {
     private final FcmTokenRepository fcmTokenRepository;
     private final NotificationSettingRepository notificationSettingRepository;
 
+    @org.springframework.context.annotation.Lazy
+    @org.springframework.beans.factory.annotation.Autowired
+    private FcmService self;  // Self-injection for proxy calls
+
     @Value("${fcm.notifications.enabled:true}")
     private boolean notificationsEnabled;
 
@@ -184,8 +188,8 @@ public class FcmService {
                 BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
                 log.debug("멀티캐스트 전송 성공: {}/{}", response.getSuccessCount(), batch.size());
 
-                // 실패한 토큰 처리
-                handleBatchResponse(batch, response);
+                // 실패한 토큰 처리 (프록시를 통해 호출하여 @Transactional 적용)
+                self.handleBatchResponse(batch, response);
 
             } catch (FirebaseMessagingException e) {
                 log.error("멀티캐스트 전송 실패: {}", e.getMessage());
@@ -196,7 +200,8 @@ public class FcmService {
     /**
      * 배치 응답 처리 (실패한 토큰 비활성화)
      */
-    protected void handleBatchResponse(List<String> tokens, BatchResponse response) {
+    @Transactional
+    public void handleBatchResponse(List<String> tokens, BatchResponse response) {
         for (int i = 0; i < response.getResponses().size(); i++) {
             SendResponse sendResponse = response.getResponses().get(i);
             if (!sendResponse.isSuccessful()) {
