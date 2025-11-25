@@ -1,0 +1,116 @@
+WayToEarth Backend
+Copyright 2024 WayToEarth Team
+
+This product includes software developed by The Apache Software Foundation (http://www.apache.org/).
+
+================================================================================
+
+This software contains the following third-party components:
+
+--------------------------------------------------------------------------------
+Apache License 2.0 Components:
+--------------------------------------------------------------------------------
+
+* Spring Framework 3.5.4
+  Copyright (c) 2002-2024 Pivotal, Inc.
+  https://spring.io/
+
+* Spring Boot
+  Copyright (c) 2012-2024 Pivotal Software, Inc.
+  https://spring.io/projects/spring-boot
+
+* Spring Security
+  Copyright (c) 2004-2024 Pivotal Software, Inc.
+  https://spring.io/projects/spring-security
+
+* Spring Data JPA
+  Copyright (c) 2011-2024 Pivotal Software, Inc.
+  https://spring.io/projects/spring-data-jpa
+
+* Spring Data Redis
+  Copyright (c) 2011-2024 Pivotal Software, Inc.
+  https://spring.io/projects/spring-data-redis
+
+* Spring WebFlux
+  Copyright (c) 2003-2024 Pivotal Software, Inc.
+  https://spring.io/projects/spring-framework
+
+* Spring Retry
+  Copyright (c) 2006-2024 Pivotal Software, Inc.
+  https://github.com/spring-projects/spring-retry
+
+* QueryDSL 5.0.0
+  Copyright (c) 2007-2024 Querydsl contributors
+  http://www.querydsl.com/
+
+* JJWT 0.12.3
+  Copyright (c) 2015-2024 Les Hazlewood, JJWT Contributors
+  https://github.com/jwtk/jjwt
+
+* Springdoc OpenAPI 2.8.9
+  Copyright (c) 2019-2024 Springdoc
+  https://springdoc.org/
+
+* Jackson 2.x
+  Copyright (c) 2007-2024 FasterXML, LLC
+  https://github.com/FasterXML/jackson
+
+* imgscalr 4.2
+  Copyright (c) 2010-2014 Riyad Kalla
+  https://github.com/rkalla/imgscalr
+
+* Apache Commons Lang 3.13.0
+  Copyright (c) 2001-2024 The Apache Software Foundation
+  https://commons.apache.org/proper/commons-lang/
+
+* Apache Commons IO 2.11.0
+  Copyright (c) 2002-2024 The Apache Software Foundation
+  https://commons.apache.org/proper/commons-io/
+
+* Caffeine Cache 3.1.8
+  Copyright (c) 2014-2024 Ben Manes
+  https://github.com/ben-manes/caffeine
+
+* Flyway 10.x
+  Copyright (c) 2010-2024 Redgate Software Ltd
+  https://flywaydb.org/
+
+* AWS SDK for Java 2.21.29
+  Copyright (c) 2013-2024 Amazon.com, Inc. or its affiliates
+  https://aws.amazon.com/sdk-for-java/
+
+* Firebase Admin SDK 9.2.0
+  Copyright (c) 2016-2024 Google Inc.
+  https://firebase.google.com/
+
+* Spring Dotenv 3.0.0
+  Copyright (c) 2020-2024 Paul Schwarz
+  https://github.com/paulschwarz/spring-dotenv
+
+--------------------------------------------------------------------------------
+MIT License Components:
+--------------------------------------------------------------------------------
+
+* Lombok
+  Copyright (c) 2009-2024 The Project Lombok Authors
+  https://projectlombok.org/
+
+* OpenAI Java SDK 0.18.2
+  Copyright (c) 2023 Theo Kanning
+  https://github.com/TheoKanning/openai-java
+
+--------------------------------------------------------------------------------
+LGPL 2.1 License Components:
+--------------------------------------------------------------------------------
+
+* MariaDB Java Client
+  Copyright (c) 2012-2024 MariaDB Corporation Ab
+  https://mariadb.com/kb/en/about-mariadb-connector-j/
+  Note: Used via runtime linking only, source code not modified.
+
+================================================================================
+
+For full license texts, see:
+- Apache 2.0: http://www.apache.org/licenses/LICENSE-2.0
+- MIT: https://opensource.org/licenses/MIT
+- LGPL 2.1: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
