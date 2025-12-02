@@ -296,7 +296,7 @@
   - 각 계층 내부는 도메인별 패키지로 구성
 
   ### 디렉터리 구조
-```
+
 src/main/java/com/waytoearth/
 │
 ├── 📁 controller/v1/                 # Presentation Layer
@@ -404,4 +404,5 @@ you may not use this file except in compliance with the License.
 
 ### 아래의 이미지를 클릭하면 시연 영상을 확인할 수 있습니다. 
 [![Video Label](http://img.youtube.com/vi/e45tMPZ9_9M/0.jpg)](https://youtu.be/e45tMPZ9_9M)
+
 
