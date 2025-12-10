@@ -19,12 +19,12 @@ public class Feed extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 작성자
+    // 작성자 - user 테이블을 참조
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // 연관 러닝 기록
+    // 연관 러닝 기록 - RunningRecord를 참조
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "running_record_id")
     private RunningRecord runningRecord;
@@ -43,7 +43,7 @@ public class Feed extends BaseTimeEntity {
     @Builder.Default
     private int likeCount = 0;
 
-    @Version
+    @Version //충돌이 나지 않을거라고 가정(잠금 없다가 업데이트 시점에만 충돌 여부 확인)
     @Column(name = "version")
     private Long version;
 

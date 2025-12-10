@@ -11,7 +11,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder   //  추가
+@Builder
+// N:M 관계를 풀기 위한 조인 테이블 추가
 @Table(name = "feed_likes", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"feed_id", "user_id"})
 })
