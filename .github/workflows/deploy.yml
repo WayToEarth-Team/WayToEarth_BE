@@ -1,4 +1,4 @@
-name: Deploy WayToEarth Backend to EC2 using Docker
+name: Deploy WayToEarth Backend to EC2 using Docker (Blue-Green with ALB)
 
 on:
   pull_request:
@@ -31,6 +31,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    env:
+      # !!! 중요 !!!
+      # 아래의 예시 ARN을 실제 AWS 환경의 ARN 값으로 교체해주세요.
+      ALB_LISTENER_ARN: "arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:listener/app/waytoearth-alb/a1b2c3d4e5f6g7/h8i9j0k1l2m3n4o5"
+      BLUE_TARGET_GROUP_ARN: "arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/waytoearth-tg-blue/b1c2d3e4f5g6h7i8"
+      GREEN_TARGET_GROUP_ARN: "arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/waytoearth-tg-green/c1d2e3f4g5h6i7j8"
+
+      # 컨테이너 포트 설정
+      BLUE_PORT: 8080
+      GREEN_PORT: 8081
+
+      # Docker 이미지 이름
+      IMAGE_NAME: "docker.io/${{ secrets.DOCKER_USERNAME }}/waytoearth:latest"
+
+      # AWS 리전
+      AWS_REGION: "ap-northeast-2"
+
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v3
@@ -60,43 +77,73 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          IMAGE_NAME=docker.io/${{ secrets.DOCKER_USERNAME }}/waytoearth:latest
           docker build -t $IMAGE_NAME .
           for i in 1 2 3; do
             docker push $IMAGE_NAME && break || (echo "Retrying push ($i/3)..." && sleep 15)
           done
 
-      # DNS 해석 확인용 디버깅 스텝
-      - name: Debug DNS Resolution
-        run: dig +short deploy.waytoearth.cloud
+      # --- ALB 기반 블루/그린 배포 단계 시작 ---
 
-      - name: Deploy on EC2 via SSH
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Determine Live and Standby Target Groups
+        id: alb_state
+        run: |
+          echo "Querying listener to find LIVE target group..."
+          LIVE_TG_ARN=$(aws elbv2 describe-listeners --listener-arns "$ALB_LISTENER_ARN" --query "Listeners[0].DefaultActions[0].TargetGroupArn" --output text)
+          
+          echo "Live Target Group ARN: $LIVE_TG_ARN"
+          
+          if [ "$LIVE_TG_ARN" == "$BLUE_TARGET_GROUP_ARN" ]; then
+            echo "Current live environment is BLUE."
+            echo "STANDBY_TG_ARN=$GREEN_TARGET_GROUP_ARN" >> $GITHUB_OUTPUT
+            echo "STANDBY_PORT=$GREEN_PORT" >> $GITHUB_OUTPUT
+            echo "OLD_LIVE_PORT=$BLUE_PORT" >> $GITHUB_OUTPUT
+          else
+            echo "Current live environment is GREEN."
+            echo "STANDBY_TG_ARN=$BLUE_TARGET_GROUP_ARN" >> $GITHUB_OUTPUT
+            echo "STANDBY_PORT=$BLUE_PORT" >> $GITHUB_OUTPUT
+            echo "OLD_LIVE_PORT=$GREEN_PORT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy New Version to Standby Port on EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.EC2_HOST }}   # deploy.waytoearth.cloud 넣을 것
+          host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_KEY }}
           script: |
             set -e
-            IMAGE_NAME=docker.io/${{ secrets.DOCKER_USERNAME }}/waytoearth:latest
-
-            echo "🛑 기존 컨테이너 중지 및 삭제"
-            docker stop waytoearth || true
-            docker rm waytoearth || true
-
-            echo "📦 최신 이미지 Pull"
-            for i in 1 2 3; do
-              docker pull "$IMAGE_NAME" && break || (echo "Retrying pull ($i/3)..." && sleep 15)
-            done
-
-            echo "🚀 새 컨테이너 실행 (자동 재시작 활성화)"
-
+            
+            STANDBY_PORT=${{ steps.alb_state.outputs.STANDBY_PORT }}
+            IMAGE_NAME=${{ env.IMAGE_NAME }}
+            
+            echo "Deploying new container to standby port: $STANDBY_PORT"
+            
+            echo "Pulling latest image: $IMAGE_NAME"
+            docker pull "$IMAGE_NAME"
+            
+            # 스탠바이 포트를 사용하는 기존 컨테이너가 있다면 중지 및 제거
+            CONTAINER_ID=$(docker ps -q --filter "publish=$STANDBY_PORT")
+            if [ -n "$CONTAINER_ID" ]; then
+              echo "Stopping and removing existing container on port $STANDBY_PORT"
+              docker stop "$CONTAINER_ID"
+              docker rm "$CONTAINER_ID"
+            fi
+            
+            echo "Starting new container on port $STANDBY_PORT"
+            # 컨테이너 이름을 고유하게 하여 충돌 방지
             docker run -d \
               --restart always \
-              -p 8080:8080 \
-              --name waytoearth \
+              -p $STANDBY_PORT:8080 \
+              --name waytoearth-standby-$(date +%s) \
               -e SPRING_PROFILES_ACTIVE="${{ vars.SPRING_PROFILES_ACTIVE }}" \
-              -e AWS_REGION="${{ vars.AWS_REGION }}" \
+              -e AWS_REGION="${{ env.AWS_REGION }}" \
               -e KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}" \
               -e KAKAO_REDIRECT_URI="${{ secrets.KAKAO_REDIRECT_URI }}" \
               -e KAKAO_TOKEN_URI="${{ vars.KAKAO_TOKEN_URI }}" \
@@ -119,19 +166,40 @@ jobs:
               -e FCM_ENABLED="${{ vars.FCM_ENABLED }}" \
               "$IMAGE_NAME"
 
-            echo "🧹 안 쓰는 이미지 정리"
+      - name: Wait for Standby Target Group to be Healthy
+        run: |
+          echo "Waiting for standby target group to become healthy..."
+          aws elbv2 wait target-in-service --target-group-arn ${{ steps.alb_state.outputs.STANDBY_TG_ARN }}
+          echo "Standby target group is healthy!"
+
+      - name: Switch ALB Traffic to Standby Target Group
+        run: |
+          echo "Switching ALB traffic to the new version..."
+          aws elbv2 modify-listener \
+            --listener-arn "$ALB_LISTENER_ARN" \
+            --default-actions Type=forward,TargetGroupArn=${{ steps.alb_state.outputs.STANDBY_TG_ARN }}
+          echo "Traffic switched successfully!"
+
+      - name: Teardown Old Live Container
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
+            OLD_LIVE_PORT=${{ steps.alb_state.outputs.OLD_LIVE_PORT }}
+            echo "Tearing down old container on port $OLD_LIVE_PORT"
+            
+            # 이전 라이브 포트를 사용하는 컨테이너를 찾아 중지 및 제거
+            CONTAINER_ID=$(docker ps -q --filter "publish=$OLD_LIVE_PORT")
+            if [ -n "$CONTAINER_ID" ]; then
+              echo "Stopping and removing old live container on port $OLD_LIVE_PORT"
+              docker stop "$CONTAINER_ID"
+              docker rm "$CONTAINER_ID"
+            else
+              echo "No old container found on port $OLD_LIVE_PORT. Nothing to do."
+            fi
+            
+            echo "Cleaning up old Docker images..."
             docker image prune -f
-
-            echo "⏳ Waiting for app to start (max 60s)..."
-            for i in {1..12}; do
-              if curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
-                echo " App is healthy!"
-                exit 0
-              fi
-              echo "⏳ Still starting... ($i/12)"
-              sleep 5
-            done
-
-            echo " App failed to start within 60s"
-            docker logs --tail 200 waytoearth || true
-            exit 1
