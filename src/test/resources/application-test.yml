@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: waytoearth-test
+
+  # H2 인메모리 DB (테스트용)
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+
+  # Flyway 비활성화
+  flyway:
+    enabled: false
+
+# 로깅
+logging:
+  level:
+    root: WARN
+    com.waytoearth: INFO
+    org.hibernate.SQL: DEBUG

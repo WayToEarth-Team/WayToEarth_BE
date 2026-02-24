@@ -23,7 +23,7 @@ public record FeedResponse(
         int likeCount,
 
         @Schema(description = "현재 로그인한 사용자가 좋아요 눌렀는지 여부", example = "true")
-        boolean liked,   // 새로 추가됨
+        boolean liked,
 
         @Schema(description = "작성 시간", example = "2025-08-18T02:45:00Z")
         Instant createdAt,

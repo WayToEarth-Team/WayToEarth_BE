@@ -19,4 +19,50 @@ public class ErrorResponse {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     private LocalDateTime timestamp;
+
+    public static ErrorResponse of(ErrorCode errorCode, String message) {
+        return ErrorResponse.builder()
+                .success(false)
+                .error(ErrorDetail.builder()
+                        .code(errorCode.getCode())
+                        .message(message)
+                        .build())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    public static ErrorResponse of(ErrorCode errorCode, String message, String details) {
+        return ErrorResponse.builder()
+                .success(false)
+                .error(ErrorDetail.builder()
+                        .code(errorCode.getCode())
+                        .message(message)
+                        .details(details)
+                        .build())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    public static ErrorResponse of(String code, String message) {
+        return ErrorResponse.builder()
+                .success(false)
+                .error(ErrorDetail.builder()
+                        .code(code)
+                        .message(message)
+                        .build())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    public static ErrorResponse of(String code, String message, String details) {
+        return ErrorResponse.builder()
+                .success(false)
+                .error(ErrorDetail.builder()
+                        .code(code)
+                        .message(message)
+                        .details(details)
+                        .build())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
 }
